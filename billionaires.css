@@ -1,0 +1,51 @@
+h1, h2, h3, h4, h5, h6, p{
+	color: white;
+}
+
+h4{
+	text-align: center;
+}
+
+body {
+	background-color: #222222;
+}
+
+#loader{
+	width: 50%;
+	text-align: center;
+	color: white;
+	margin: auto;
+	margin-top: 200px;
+}
+
+#content {
+	float: left;
+	width: 33%;
+	height: 100%;
+}
+
+svg{
+	float: left;
+	width: 67%;
+}
+
+#flag-div{
+	width: 100%;
+}
+
+#flag{
+   display: inline;
+}
+
+#legend-card-content {
+	margin: 0 0 0 0;
+	padding: 0 0 0 0;
+}
+
+#legend-card-content p {
+	margin: 0 0 0 0;
+	padding: 5px 0 5px 0;
+	width: 50%;
+	display: inline-block;
+	text-align: center;
+}
