@@ -1,4 +1,4 @@
-# Information Visualization of the Forbes Billionaire List 2014
+# Data Visualization of the Forbes Billionaire List 2014
 
 <div align="center">
   <img src="billionaires_screenshot.PNG" width="800"/>
