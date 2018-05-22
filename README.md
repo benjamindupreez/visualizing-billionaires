@@ -1,7 +1,7 @@
 # Information Visualization of the Forbes Billionaire List 2014
 
 <div align="center">
-  <img src="billionaires_screenshot.jpg" width="800"/>
+  <img src="billionaires_screenshot.PNG" width="800"/>
 </div>
 
 The dataset used for this visualization comes from the following study by Caroline Freund and Sarah Oliver: https://piie.com/publications/working-papers/origins-superrich-billionaire-characteristics-database?ResearchID=2917
