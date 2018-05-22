@@ -3,6 +3,7 @@ let allData;
 let width;
 let color = d3.scaleOrdinal(d3.schemeCategory20);
 
+// holds up to two axis over which the data is currently split
 let splitAxis = ["", ""];
 
 $(document).ready(function(){
@@ -23,13 +24,41 @@ $(document).ready(function(){
         if($(this).prop('checked')) {
         	// add an axis and split the data over the current one or two axis
          	addAxis(switchId);
-         	// get the splitting functions from the flickes switches' id's and send it to split to manipulate the data
-			split(splittingFunctions[splitAxis[0]], splittingFunctions[splitAxis[1]]);
 	    } else {
 	    	// remove the 2nd axis
 	    	removeAxis(switchId);
-	    	join();
 	    }
+
+	    console.log(splitAxis);
+
+     	// get the splitting functions from the flickes switches' id's and send it to split to manipulate the data
+		split(splittingFunctions[splitAxis[0]], splittingFunctions[splitAxis[1]]);
+
+    	// now show the appropriate axis on the visualization
+
+    	d3.select("#bubbles-svg").selectAll("g").remove(); // clear the axis canvas
+		let l = d3.select("#bubbles-svg").selectAll("g").data(splitAxis.filter((d) => d !== "")).enter().append("g");
+
+		l.append("line")
+				.attr("x1", (d, i) => (i == 0)? width / 2 : width / 16)
+				.attr("x2", (d, i) => (i == 0)? width / 2 : 15 * width / 16)
+				.attr("y1", (d, i) => (i == 0)? 50 : 400)
+				.attr("y2", (d, i) => (i == 0)? 700 : 400)
+				
+		l.append("text")
+				.attr("x", (d, i) => (i == 0)? (width / 2) - 10 : width / 16)
+				.attr("y", (d, i) => (i == 0)? 60 : 390)
+				.attr("fill", "white")
+				.attr("text-anchor", (d, i) => (i == 0)? "end" : "start")
+				.text((d, i) => splittingText[splitAxis[i]][0])
+				
+		l.append("text")
+				.attr("x", (d, i) => (i == 0)? (width / 2) + 10 : width / 16)
+				.attr("y", (d, i) => (i == 0)? 60 : 420)
+				.attr("fill", "white")
+				.text((d, i) => splittingText[splitAxis[i]][1])
+				.append("text");
+
     });
 
 	// LOAD DATA
@@ -85,9 +114,9 @@ $(document).ready(function(){
 	function buildSimulation() {
 
 		d3.forceSimulation(data)
-				  .force('x', d3.forceX().x(2 * width / 3))
-				  .force('y', d3.forceY().y(350))
-				  .force('collision', d3.forceCollide().radius((d) => 4*Math.sqrt(parseFloat(d.networthusbillion))))
+				  .force('x', d3.forceX().x(width / 2))
+				  .force('y', d3.forceY().y(400))
+				  .force('collision', d3.forceCollide().radius((d) => radius(d) + 2))
 				  .on('tick', ticked);
 
 
@@ -99,7 +128,6 @@ $(document).ready(function(){
 		d3.select("#industry").text("Industry: " + data[0].industry);
 		d3.select("#type").text("Type: " + data[0].typeofwealth);
 		d3.select("#notes").text((data[0].notes)? ("Notes: " + data[0].notes) : "");
-
 		d3.select("#flag").attr("src", "http://www.countryflags.io/" + getCountryCode(data[0]) + "/flat/64.png");
 
 	}
@@ -120,7 +148,21 @@ $(document).ready(function(){
 				    			.on('click', clickLegend);
 	}
 
+	// this function is called iteratively until the force layout has reached steady state
 	function ticked() {
+
+		// check if we're splitting over axis, and set the appropriate functions for cx and cy
+		cx = (d) => Math.max(radius(d), Math.min(width - radius(d), d.x)); // default function (not splitting)
+		cy = (d) => Math.max(radius(d), Math.min(800 - radius(d), d.y));
+
+		// splitting horizontally
+		if(splitAxis[0] !== "") {
+			cx = (d) => splittingFunctions[splitAxis[0]](d)? Math.max(radius(d), Math.min(width/2 - radius(d), d.x)) :  Math.max(radius(d) + width/2, Math.min(width - radius(d), d.x));
+		}
+		// splitting vertically
+		if(splitAxis[1] !== "") {
+			cy = (d) => splittingFunctions[splitAxis[1]](d)? Math.max(radius(d), Math.min(400 - radius(d), d.y)) :  Math.max(radius(d) + 400, Math.min(800 - radius(d), d.y));
+		}
 
 		// select all circles already there
 		let u = d3.select("#bubbles-svg").selectAll("circle").data(data);
@@ -130,39 +172,59 @@ $(document).ready(function(){
 
 		// add new ones (for new data), merge with the old ones and update both of their positions
 		u.enter().append("circle")
-		 		.attr("r", (d) => 3*Math.sqrt(parseFloat(d.networthusbillion)))
+		 		.attr("r", (d) => radius(d))
 				.attr("fill", (d) => {
 					return color(industryColor(d.industry));
 				})
 			    .on('mouseover', mouseover)
 			    .on('mouseout', mouseout)
 				.merge(u)
-				.attr('cx', (d) => d.x = Math.max(parseFloat(d.networthusbillion), Math.min(width - parseFloat(d.networthusbillion), d.x)))
-			    .attr('cy', (d) => d.y = Math.max(parseFloat(d.networthusbillion), Math.min(800 - parseFloat(d.networthusbillion), d.y)));
+				.attr('cx', (d) => d.x = cx(d))
+			    .attr('cy', (d) => d.y = cy(d));
+	}
+
+	// calculates the bubble radius of a specified billionaire based on their wealth
+	function radius(d) {
+		return 3*Math.sqrt(parseFloat(d.networthusbillion));
 	}
 
 	// splits the data over the desired one or two axis'
 	function split(xFunction, yFunction) {
 
-		console.log(yFunction);
+		// split over 2 axis
+		if(xFunction !== undefined && yFunction !== undefined) {
 
-		// data only has to be split over two axis
-		d3.forceSimulation(data)
-					  .force('x', d3.forceX().x((d) => xFunction(d)? ((2 * width / 3) - (width / 2)) : ((2 * width / 3) + (width / 6))))
-					  // if an y function is given split the data according to it, otherwise just set y coordinate = 350
-					  .force('y', d3.forceY().y((d) => (xFunction !== undefined && yFunction !== undefined)? (yFunction(d)? 200 : 600) : 350))
-					  .force('collision', d3.forceCollide().radius((d) => 3*Math.sqrt(parseFloat(d.networthusbillion)) + 2))
+			// transition simulation (billionaires can cross axis)
+			d3.forceSimulation(data)
+					  .force('x', d3.forceX().x((d) => xFunction(d)? (width / 4) : (3 * width / 4)))
+					  // if an y function is given split the data according to it, otherwise just set y coordinate = 400
+					  .force('y', d3.forceY().y((d) => yFunction(d)? 200 : 600))
+					  .force('collision', d3.forceCollide().radius((d) => radius(d) + 2))
 					  .on('tick', ticked);
 
-	}
+		}
+		// split over 1 axis only
+		else if(xFunction !== undefined) {
 
-	function join() {
-		d3.forceSimulation(data)
-				  .force('x', d3.forceX().x(2 * width / 3))
-				  .force('y', d3.forceY().y(350))
-				  .force('collision', d3.forceCollide().radius((d) => 3*Math.sqrt(parseFloat(d.networthusbillion))))
+			// transition simulation (billionaires can cross axis)
+			d3.forceSimulation(data)
+					  .force('x', d3.forceX().x((d) => xFunction(d)? (width / 4) : (3 * width / 4)))
+					  // if an y function is given split the data according to it, otherwise just set y coordinate = 400
+					  .force('y', d3.forceY().y((d) => 400))
+					  .force('collision', d3.forceCollide().radius((d) => radius(d) + 2))
+					  .on('tick', ticked);
+
+		}
+		// join all data
+		else {
+
+			d3.forceSimulation(data)
+				  .force('x', d3.forceX().x(width / 2))
+				  .force('y', d3.forceY().y(400))
+				  .force('collision', d3.forceCollide().radius((d) => radius(d)))
 				  .on('tick', ticked);
 
+		}
 	}
 
 	function mouseover(d, i) {
@@ -193,21 +255,7 @@ $(document).ready(function(){
 	}
 
 	function clickLegend(d, i) {
-	/*	// remove irrelevant data
-		
-		data = allData.filter((a) => {
-				return a.year === 2014;
-			}).slice(0, 500);
-	*/
-		data = data.filter((a) => {
-				return a.industry === "Energy";
-			});
 
-		d3.forceSimulation(data)
-				  .force('x', d3.forceX().x(2 * width / 3))
-				  .force('y', d3.forceY().y(350))
-				  .force('collision', d3.forceCollide().radius((d) => parseInt(d.networthusbillion) + 1))
-				  .on('tick', ticked);
 	}
 
 	// adds an axis and, if two axis's were already chosen, removes the oldest one
@@ -216,8 +264,6 @@ $(document).ready(function(){
 		// update active axis: add checked switch to thefront of the array and untoggle the rest
 		splitAxis.unshift(newAxis);
 		splitAxis.length = 2;
-
-		console.log(splitAxis);
 
 		$('#inherited-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#inherited-check") !== -1);
 		$('#gender-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#gender-check") !== -1);
@@ -228,12 +274,10 @@ $(document).ready(function(){
 	// removes one of the current two axis
 	function removeAxis(axisToRemove) {
 
-		splitAxis.splice(splitAxis.indexOf(axisToRemove));
-
-		console.log(splitAxis);
+		splitAxis.splice(splitAxis.indexOf(axisToRemove), 1);
+		splitAxis.push("");
 
 		$(axisToRemove).find("input[type=checkbox]").prop('checked', false);
-
 
 	}
 
@@ -279,6 +323,14 @@ const splittingFunctions = {
 	"#american-check" : (d) => d.countrycode === 'USA',
 	"#gender-check" : (d) => d.gender === 'male',
 	"#founder-check" : (d) => d.founder === '1'
+}
+
+// maps the switch id's to the appropriate axis text
+const splittingText = {
+	"#inherited-check" : ["Self-made", "Inherited"],
+	"#american-check" : ["American", "International"],
+	"#gender-check" : ["Male", "Female"],
+	"#founder-check" : ["Founder", "Non-Founder"]
 }
 
 // maps the dataset country codes to the country codes used by the flags API
@@ -332,5 +384,6 @@ const country_codes = {
 		"UKR" : "ua",
 		"POL" : "pl",
 		"NZL" : "nz",
-		"NOR" : "no"
+		"NOR" : "no",
+		"AGO" : "ao"
 };

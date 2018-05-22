@@ -49,3 +49,8 @@ svg{
 	display: inline-block;
 	text-align: center;
 }
+
+line{
+	stroke: rgb(255, 255, 255);
+	stroke-width: 1;
+}
