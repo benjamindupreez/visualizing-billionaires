@@ -3,6 +3,8 @@ let allData;
 let width;
 let color = d3.scaleOrdinal(d3.schemeCategory20);
 
+let splitAxis = ["", ""];
+
 $(document).ready(function(){
 
 	width = parseInt(d3.select('#bubbles-svg').style('width'), 10);
@@ -11,56 +13,21 @@ $(document).ready(function(){
 	$("#title").hide();
 	$("#split-by-toggles").hide();
 
-	// these switches split the data in certain ways, on check they pass a function argument to the splitHalf or splitQuarter function
-    $("#inherited-check").find("input[type=checkbox]").on("change",function() {
-        var checked = $(this).prop('checked');
+	/* if a switch was flipped -> call the appropriate functions to manipulate the data over the axis
+	*/
+    $(".switch").find("input[type=checkbox]").on("change",function() {
 
-        let xFunction = (d) => (d.generationofinheritance === '0')? ((2 * width / 3) - (width / 3)) : ((2 * width / 3) + (width / 5));
+    	// get the id of the switch that was flicked (we use this to know what axis to add)
+        let switchId = "#" + $(this).attr("switch-id");
 
-         if(checked) {
-         	setSwitchesFalse();
-	   		$(this).prop('checked', true);
-			splitHalf(xFunction);
+        if($(this).prop('checked')) {
+        	// add an axis and split the data over the current one or two axis
+         	addAxis(switchId);
+         	// get the splitting functions from the flickes switches' id's and send it to split to manipulate the data
+			split(splittingFunctions[splitAxis[0]], splittingFunctions[splitAxis[1]]);
 	    } else {
-	    	join();
-	    }
-    });
-    $("#emerging-check").find("input[type=checkbox]").on("change",function() {
-        var checked = $(this).prop('checked');
-
-         let xFunction = (d) => (d.countrycode === 'USA')? ((2 * width / 3) - (width / 2)) : ((2 * width / 3) + (width / 8));
-
-         if(checked) {
-         	setSwitchesFalse();
-	   		$(this).prop('checked', true);
-			splitHalf(xFunction);
-	    } else {
-	    	join();
-	    }
-    });
-	$("#gender-check").find("input[type=checkbox]").on("change",function() {
-        var checked = $(this).prop('checked');
-
-        let xFunction = (d) => (d.gender === 'male')? ((2 * width / 3) - (width / 3)) : ((2 * width / 3) + (width / 5));
-
-         if(checked) {
-         	setSwitchesFalse();
-	   		$(this).prop('checked', true);
-			splitHalf(xFunction);
-	    } else {
-	    	join();
-	    }
-    });
-    $("#founder-check").find("input[type=checkbox]").on("change",function() {
-        var checked = $(this).prop('checked');
-
-        let xFunction = (d) => (d.founder === '1')? ((2 * width / 3) - (width / 2)) : ((2 * width / 3) + (width / 6));
-
-         if(checked) {
-         	setSwitchesFalse();
-	   		$(this).prop('checked', true);
-			splitHalf(xFunction);
-	    } else {
+	    	// remove the 2nd axis
+	    	removeAxis(switchId);
 	    	join();
 	    }
     });
@@ -120,7 +87,7 @@ $(document).ready(function(){
 		d3.forceSimulation(data)
 				  .force('x', d3.forceX().x(2 * width / 3))
 				  .force('y', d3.forceY().y(350))
-				  .force('collision', d3.forceCollide().radius((d) => parseInt(d.networthusbillion) + 1))
+				  .force('collision', d3.forceCollide().radius((d) => 4*Math.sqrt(parseFloat(d.networthusbillion))))
 				  .on('tick', ticked);
 
 
@@ -148,9 +115,6 @@ $(document).ready(function(){
 								.append("p")
 								.text((d) => d)
 								.style("background-color", (d) => color(industryColor(d)))
-								.style('border-style', 'solid')
-								.style('border-color', 'black')
-								.style('border-width', '0px')
 							    .on('mouseover', mouseoverLegend)
 				    			.on('mouseout', mouseoutLegend)
 				    			.on('click', clickLegend);
@@ -166,7 +130,7 @@ $(document).ready(function(){
 
 		// add new ones (for new data), merge with the old ones and update both of their positions
 		u.enter().append("circle")
-		 		.attr("r", (d) => parseFloat(d.networthusbillion))
+		 		.attr("r", (d) => 3*Math.sqrt(parseFloat(d.networthusbillion)))
 				.attr("fill", (d) => {
 					return color(industryColor(d.industry));
 				})
@@ -177,28 +141,26 @@ $(document).ready(function(){
 			    .attr('cy', (d) => d.y = Math.max(parseFloat(d.networthusbillion), Math.min(800 - parseFloat(d.networthusbillion), d.y)));
 	}
 
-	function splitHalf(xFunction) {
+	// splits the data over the desired one or two axis'
+	function split(xFunction, yFunction) {
 
-		console.log(data);
+		console.log(yFunction);
 
+		// data only has to be split over two axis
 		d3.forceSimulation(data)
-						  .force('x', d3.forceX().x((d) => xFunction(d)))
-						  .force('y', d3.forceY().y(350))
-						  .force('collision', d3.forceCollide().radius((d) => parseInt(d.networthusbillion) + 1))
-						  .on('tick', ticked);
-
-	}
-
-	function splitQuarters(xFunction, yFunction) {
+					  .force('x', d3.forceX().x((d) => xFunction(d)? ((2 * width / 3) - (width / 2)) : ((2 * width / 3) + (width / 6))))
+					  // if an y function is given split the data according to it, otherwise just set y coordinate = 350
+					  .force('y', d3.forceY().y((d) => (xFunction !== undefined && yFunction !== undefined)? (yFunction(d)? 200 : 600) : 350))
+					  .force('collision', d3.forceCollide().radius((d) => 3*Math.sqrt(parseFloat(d.networthusbillion)) + 2))
+					  .on('tick', ticked);
 
 	}
 
 	function join() {
-
 		d3.forceSimulation(data)
 				  .force('x', d3.forceX().x(2 * width / 3))
 				  .force('y', d3.forceY().y(350))
-				  .force('collision', d3.forceCollide().radius((d) => parseInt(d.networthusbillion) + 1))
+				  .force('collision', d3.forceCollide().radius((d) => 3*Math.sqrt(parseFloat(d.networthusbillion))))
 				  .on('tick', ticked);
 
 	}
@@ -223,11 +185,11 @@ $(document).ready(function(){
 	}
 
 	function mouseoverLegend(d, i) {
-		d3.select(this).style('border-width', '2px');
+		d3.select(this).style('font-weight', 'bold');
 	}
 
 	function mouseoutLegend(d, i) {
-		d3.select(this).style('border-width', '0px');
+		d3.select(this).style('font-weight', 'normal');
 	}
 
 	function clickLegend(d, i) {
@@ -236,22 +198,46 @@ $(document).ready(function(){
 		data = allData.filter((a) => {
 				return a.year === 2014;
 			}).slice(0, 500);
-
+	*/
 		data = data.filter((a) => {
-				return a.wealth.how.industry === "Energy";
+				return a.industry === "Energy";
 			});
 
-		buildSimulation(); */
+		d3.forceSimulation(data)
+				  .force('x', d3.forceX().x(2 * width / 3))
+				  .force('y', d3.forceY().y(350))
+				  .force('collision', d3.forceCollide().radius((d) => parseInt(d.networthusbillion) + 1))
+				  .on('tick', ticked);
+	}
+
+	// adds an axis and, if two axis's were already chosen, removes the oldest one
+	function addAxis(newAxis) {
+
+		// update active axis: add checked switch to thefront of the array and untoggle the rest
+		splitAxis.unshift(newAxis);
+		splitAxis.length = 2;
+
+		console.log(splitAxis);
+
+		$('#inherited-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#inherited-check") !== -1);
+		$('#gender-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#gender-check") !== -1);
+		$('#american-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#american-check") !== -1);
+		$('#founder-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#founder-check") !== -1);
+	}
+
+	// removes one of the current two axis
+	function removeAxis(axisToRemove) {
+
+		splitAxis.splice(splitAxis.indexOf(axisToRemove));
+
+		console.log(splitAxis);
+
+		$(axisToRemove).find("input[type=checkbox]").prop('checked', false);
+
+
 	}
 
 });
-
-function setSwitchesFalse() {
-	$('#inherited-check').find("input[type=checkbox]").prop('checked', false);
-	$('#gender-check').find("input[type=checkbox]").prop('checked', false);
-	$('#emerging-check').find("input[type=checkbox]").prop('checked', false);
-	$('#founder-check').find("input[type=checkbox]").prop('checked', false);
-}
 
 function industryColor(industry_name) {
 
@@ -286,6 +272,14 @@ const industries = {
 		'Technology-Medical' : 12,
 		'Other': 13
 };
+
+// maps the switch id's to the appropriate evaluation functions
+const splittingFunctions = {
+	"#inherited-check" : (d) => d.generationofinheritance === '0',
+	"#american-check" : (d) => d.countrycode === 'USA',
+	"#gender-check" : (d) => d.gender === 'male',
+	"#founder-check" : (d) => d.founder === '1'
+}
 
 // maps the dataset country codes to the country codes used by the flags API
 const country_codes = {
