@@ -134,9 +134,7 @@ $(document).ready(function(){
 
 	function showLegend() {
 		// show legend
-		let legend_data = Object.keys(industries).slice(0, Object.keys(industries).indexOf("Other"));
-		legend_data.push("All");
-		console.log(legend_data);
+		let legend_data = Object.keys(industries);
 		d3.select("#legend-card-content").selectAll("div")
 								.data(legend_data)
 								.enter()
@@ -261,9 +259,15 @@ $(document).ready(function(){
 	// adds an axis and, if two axis's were already chosen, removes the oldest one
 	function addAxis(newAxis) {
 
-		// update active axis: add checked switch to thefront of the array and untoggle the rest
-		splitAxis.unshift(newAxis);
-		splitAxis.length = 2;
+		// update active axis: add checked switch to thefront of the array and untoggle the rest	
+		if(splitAxis[0] === "") {
+			splitAxis[0] = newAxis;
+		} else if(splitAxis[1] === "") {
+			splitAxis[1] = newAxis;
+		} else {
+			splitAxis.shift();
+			splitAxis[1] = newAxis;
+		}
 
 		$('#inherited-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#inherited-check") !== -1);
 		$('#gender-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#gender-check") !== -1);
