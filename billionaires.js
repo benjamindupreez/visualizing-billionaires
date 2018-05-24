@@ -240,6 +240,8 @@ $(document).ready(function(){
 		$('#gender-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#gender-check") !== -1);
 		$('#american-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#american-check") !== -1);
 		$('#founder-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#founder-check") !== -1);
+		$('#emering-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#emering-check") !== -1);
+		$('#politicalconnection-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#politicalconnection-check") !== -1);
 	}
 
 	// removes one of the current two axis
@@ -383,7 +385,9 @@ const splittingFunctions = {
 	"#inherited-check" : (d) => d.generationofinheritance === '0',
 	"#american-check" : (d) => d.countrycode === 'USA',
 	"#gender-check" : (d) => d.gender === 'male',
-	"#founder-check" : (d) => d.founder === '1'
+	"#founder-check" : (d) => d.founder === '1',
+	"#politicalconnection-check" : (d) => d.politicalconnection === '1',
+	"#emerging-check" : (d) => d.north === '0'
 }
 
 // maps the switch id's to the appropriate axis text
@@ -391,7 +395,9 @@ const splittingText = {
 	"#inherited-check" : ["Self-made", "Inherited"],
 	"#american-check" : ["American", "International"],
 	"#gender-check" : ["Male", "Female"],
-	"#founder-check" : ["Founder", "Non-Founder"]
+	"#founder-check" : ["Founder", "Non-Founder"],
+	"#politicalconnection-check" : ["Political Connection", "No Political Connection"],
+	"#emerging-check" : ["Emerging Market", "Advanced Economy"]
 }
 
 // maps the dataset country codes to the country codes used by the flags API
@@ -448,5 +454,11 @@ const country_codes = {
 		"NOR" : "no",
 		"AGO" : "ao",
 		"PRT" : "pt",
-		"DZA" : "dz"
+		"DZA" : "dz",
+		"ARE" : "ae",
+		"EGY" : "eg",
+		"MAR" : "ma",
+		"GEO" : "ge",
+		"CZE" : "cz",
+		"SWZ" : "sz"
 };
