@@ -54,3 +54,7 @@ line{
 	stroke: rgb(255, 255, 255);
 	stroke-width: 1;
 }
+
+#credit-link{
+	color: rgb(255, 171, 64) !important;
+}

@@ -1,22 +1,31 @@
 let data;
-let allData;
 let width;
 let color = d3.scaleOrdinal(d3.schemeCategory20);
 
+// equals null if no billionaire is currently selected, otherwise it holds the billionaires data
+let selectedBillionaire = null;
+
 // holds up to two axis over which the data is currently split
 let splitAxis = ["", ""];
+
+// the variable holds a function through which the data is filtered (e.g. used to filter certain industries)
+let dataFilteringFunction = (d) => true;
 
 $(document).ready(function(){
 
 	width = parseInt(d3.select('#bubbles-svg').style('width'), 10);
 
+	$('.modal').modal();
+	$('#credits-modal').modal('open');
 	$("#billionaire-card").hide();
 	$("#title").hide();
 	$("#split-by-toggles").hide();
 
-	/* if a switch was flipped -> call the appropriate functions to manipulate the data over the axis
-	*/
-    $(".switch").find("input[type=checkbox]").on("change",function() {
+	///////////////////////////////////
+	//// SWITCH HANDLING //////////////
+	///////////////////////////////////
+	// if a switch was flipped -> call the appropriate functions to manipulate the data over the axis
+    $(".switch").find("input[type=checkbox]").on("click", function() {
 
     	// get the id of the switch that was flicked (we use this to know what axis to add)
         let switchId = "#" + $(this).attr("switch-id");
@@ -25,16 +34,14 @@ $(document).ready(function(){
         	// add an axis and split the data over the current one or two axis
          	addAxis(switchId);
 	    } else {
-	    	// remove the 2nd axis
+	    	// remove one axis
 	    	removeAxis(switchId);
 	    }
 
-	    console.log(splitAxis);
-
-     	// get the splitting functions from the flickes switches' id's and send it to split to manipulate the data
+     	// get the splitting functions from the flicked switches' id's and send it to split to manipulate the data
 		split(splittingFunctions[splitAxis[0]], splittingFunctions[splitAxis[1]]);
 
-    	// now show the appropriate axis on the visualization
+    	// now show the appropriate axis' on the visualization
 
     	d3.select("#bubbles-svg").selectAll("g").remove(); // clear the axis canvas
 		let l = d3.select("#bubbles-svg").selectAll("g").data(splitAxis.filter((d) => d !== "")).enter().append("g");
@@ -59,9 +66,13 @@ $(document).ready(function(){
 				.text((d, i) => splittingText[splitAxis[i]][1])
 				.append("text");
 
+		// stops the background parent svg click handler from being called
+		d3.event.stopPropagation();
     });
 
-	// LOAD DATA
+    ///////////////////////////////////////
+	// LOAD DATA //////////////////////////
+	///////////////////////////////////////
 	var data;
 
 	// new https://gist.githubusercontent.com/benjamindupreez/7ff764dd20dbf295d38162eec4b567de/raw/f3f570ad83b3444dd362dfd063849727ca320847/billionairesV2.json
@@ -69,8 +80,6 @@ $(document).ready(function(){
 	$.getJSON("https://gist.githubusercontent.com/benjamindupreez/7ff764dd20dbf295d38162eec4b567de/raw/c8303cc204414abb7fa0b2e5568f01c02a3a1dc5/billionairesV2.json").then((result) => {
 
 		// LOAD JSON FROM WEB
-
-		console.log(result);
 
 		return new Promise((resolve, reject) => {
 
@@ -95,30 +104,17 @@ $(document).ready(function(){
 
 		data = data.filter((a) => {
 			return a.year === "2014";
-		}).slice(0, 500);
-
-		console.log(data);
+		}).slice(0, 1000);
 
 		$("#loader").hide();
 		$("#billionaire-card").show();
 		$("#title").show();
 		$("#split-by-toggles").show();
 
-		// BUILD SIMULATION
-		buildSimulation();
+		d3.select("#bubbles-svg").on("click", unclickBillionaire);
 
+		split(); // build the simulation
 		showLegend();
-		
-	});
-
-	function buildSimulation() {
-
-		d3.forceSimulation(data)
-				  .force('x', d3.forceX().x(width / 2))
-				  .force('y', d3.forceY().y(400))
-				  .force('collision', d3.forceCollide().radius((d) => radius(d) + 2))
-				  .on('tick', ticked);
-
 
 	  	// force the first billionaire to be shown
 		d3.select("#name").text(data[0].rank + ". " + data[0].name + ((data[0].age === -1)? "" : (" (" + data[0].age + ")")));
@@ -128,10 +124,14 @@ $(document).ready(function(){
 		d3.select("#industry").text("Industry: " + data[0].industry);
 		d3.select("#type").text("Type: " + data[0].typeofwealth);
 		d3.select("#notes").text((data[0].notes)? ("Notes: " + data[0].notes) : "");
+		d3.select("#link").attr("href", data[0].source.includes("http")? data[0].source : "").attr("target", "_blank").text(data[0].source.includes("http")? "Source" : "");
 		d3.select("#flag").attr("src", "http://www.countryflags.io/" + getCountryCode(data[0]) + "/flat/64.png");
+		
+	});
 
-	}
-
+	///////////////////////////////
+	///// UI UTILITY FUNCTIONS ////
+	///////////////////////////////
 	function showLegend() {
 		// show legend
 		let legend_data = Object.keys(industries);
@@ -150,9 +150,10 @@ $(document).ready(function(){
 	function ticked() {
 
 		// check if we're splitting over axis, and set the appropriate functions for cx and cy
-		cx = (d) => Math.max(radius(d), Math.min(width - radius(d), d.x)); // default function (not splitting)
-		cy = (d) => Math.max(radius(d), Math.min(800 - radius(d), d.y));
 
+		// default functions (not splitting)
+		cx = (d) => Math.max(radius(d), Math.min(width - radius(d), d.x));
+		cy = (d) => Math.max(radius(d), Math.min(800 - radius(d), d.y));
 		// splitting horizontally
 		if(splitAxis[0] !== "") {
 			cx = (d) => splittingFunctions[splitAxis[0]](d)? Math.max(radius(d), Math.min(width/2 - radius(d), d.x)) :  Math.max(radius(d) + width/2, Math.min(width - radius(d), d.x));
@@ -162,8 +163,8 @@ $(document).ready(function(){
 			cy = (d) => splittingFunctions[splitAxis[1]](d)? Math.max(radius(d), Math.min(400 - radius(d), d.y)) :  Math.max(radius(d) + 400, Math.min(800 - radius(d), d.y));
 		}
 
-		// select all circles already there
-		let u = d3.select("#bubbles-svg").selectAll("circle").data(data);
+		// bind data using the billionaires name as key
+		let u = d3.select("#bubbles-svg").selectAll("circle").data(data.filter((d) => dataFilteringFunction(d)), (d) => d.name.replace(/\s/g, ''));
 
 		// remove all circles no longer associated with data
 		u.exit().remove();
@@ -172,8 +173,10 @@ $(document).ready(function(){
 		u.enter().append("circle")
 		 		.attr("r", (d) => radius(d))
 				.attr("fill", (d) => {
-					return color(industryColor(d.industry));
+					// apply the appropriate industry color
+					return (selectedBillionaire === null || selectedBillionaire === d)? color(industryColor(d.industry)) : "#555555";
 				})
+				.on('click', clickBillionaire)
 			    .on('mouseover', mouseover)
 			    .on('mouseout', mouseout)
 				.merge(u)
@@ -181,19 +184,15 @@ $(document).ready(function(){
 			    .attr('cy', (d) => d.y = cy(d));
 	}
 
-	// calculates the bubble radius of a specified billionaire based on their wealth
-	function radius(d) {
-		return 3*Math.sqrt(parseFloat(d.networthusbillion));
-	}
-
-	// splits the data over the desired one or two axis'
+	// builds the simulation and splits the data over the desired one or two (or zero) axis'
 	function split(xFunction, yFunction) {
+
+		let dataToShow = data.filter((d) => dataFilteringFunction(d));
 
 		// split over 2 axis
 		if(xFunction !== undefined && yFunction !== undefined) {
 
-			// transition simulation (billionaires can cross axis)
-			d3.forceSimulation(data)
+			d3.forceSimulation(dataToShow)
 					  .force('x', d3.forceX().x((d) => xFunction(d)? (width / 4) : (3 * width / 4)))
 					  // if an y function is given split the data according to it, otherwise just set y coordinate = 400
 					  .force('y', d3.forceY().y((d) => yFunction(d)? 200 : 600))
@@ -204,8 +203,7 @@ $(document).ready(function(){
 		// split over 1 axis only
 		else if(xFunction !== undefined) {
 
-			// transition simulation (billionaires can cross axis)
-			d3.forceSimulation(data)
+			d3.forceSimulation(dataToShow)
 					  .force('x', d3.forceX().x((d) => xFunction(d)? (width / 4) : (3 * width / 4)))
 					  // if an y function is given split the data according to it, otherwise just set y coordinate = 400
 					  .force('y', d3.forceY().y((d) => 400))
@@ -216,7 +214,7 @@ $(document).ready(function(){
 		// join all data
 		else {
 
-			d3.forceSimulation(data)
+			d3.forceSimulation(dataToShow)
 				  .force('x', d3.forceX().x(width / 2))
 				  .force('y', d3.forceY().y(400))
 				  .force('collision', d3.forceCollide().radius((d) => radius(d)))
@@ -225,35 +223,9 @@ $(document).ready(function(){
 		}
 	}
 
-	function mouseover(d, i) {
-		console.log(d.name + " (" + d.networthusbillion + ")");
-		d3.select(this).attr('stroke','black').attr('stroke-width', 5);
-
-		d3.select("#name").text(d.rank + ". " + d.name + ((d.age === -1)? "" : (" (" + d.age + ")")));
-		d3.select("#company").text(d.company + " (founded " + d.foundingdate + ")");
-		d3.select("#wealth").text("Net worth: $" + d.networthusbillion + "B");
-		d3.select("#country").text("Citizenship: " + d.citizenship);
-		d3.select("#industry").text("Industry: " + d.industry);
-		d3.select("#type").text("Type: " + d.typeofwealth);
-		d3.select("#notes").text((d.notes)? ("Notes: " + d.notes) : "");
-
-		d3.select("#flag").attr("src", "http://www.countryflags.io/" + getCountryCode(d) + "/flat/64.png")
-	}
-
-	function mouseout(d, i) {
-		d3.select(this).attr('stroke','black').attr('stroke-width', 0);
-	}
-
-	function mouseoverLegend(d, i) {
-		d3.select(this).style('font-weight', 'bold');
-	}
-
-	function mouseoutLegend(d, i) {
-		d3.select(this).style('font-weight', 'normal');
-	}
-
-	function clickLegend(d, i) {
-
+	// calculates the bubble radius of a specified billionaire based on their wealth
+	function radius(d) {
+		return 3*Math.sqrt(parseFloat(d.networthusbillion));
 	}
 
 	// adds an axis and, if two axis's were already chosen, removes the oldest one
@@ -285,23 +257,111 @@ $(document).ready(function(){
 
 	}
 
-});
+	// the next two functions look up data from the dictionaries at the bottom of the code
+	function industryColor(industry_name) {
 
-function industryColor(industry_name) {
+		if(industries[industry_name]) {
+			return industries[industry_name];
+		} else {
+			return industries["Other"];
+		}
 
-	if(industries[industry_name]) {
-		return industries[industry_name];
-	} else {
-		return industries["Other"];
 	}
 
-}
+	function getCountryCode(d) {
+		return country_codes[d.countrycode];
+	}
 
-function getCountryCode(d) {
-	return country_codes[d.countrycode];
-}
 
-// CONST DATA
+	//////////////////////////////////
+	// MOUSE EVENT HANDLING //////////
+	//////////////////////////////////
+	function mouseover(d, i) {
+
+		d3.select(this).attr('stroke','black').attr('stroke-width', 5);
+
+		if(selectedBillionaire === null) { // disable mouseover highlighting when a billionaire is in focus
+
+			d3.select("#name").text(d.rank + ". " + d.name + ((d.age === -1)? "" : (" (" + d.age + ")")));
+			d3.select("#company").text(d.company + " (founded " + d.foundingdate + ")");
+			d3.select("#wealth").text("Net worth: $" + d.networthusbillion + "B");
+			d3.select("#country").text("Citizenship: " + d.citizenship);
+			d3.select("#industry").text("Industry: " + d.industry);
+			d3.select("#type").text("Type: " + d.typeofwealth);
+			d3.select("#notes").text((d.notes)? ("Notes: " + d.notes) : "");
+			d3.select("#link").attr("href", d.source.includes("http")? d.source : "").attr("target", "_blank").text(d.source.includes("http")? "Source" : "");
+
+			d3.select("#flag").attr("src", "http://www.countryflags.io/" + getCountryCode(d) + "/flat/64.png");
+		}
+	}
+
+	function mouseout(d, i) {
+
+		d3.select(this).attr('stroke','black').attr('stroke-width', 0);
+	}
+
+	function mouseoverLegend(d, i) {
+		d3.select(this).style('font-weight', 'bold');
+	}
+
+	function mouseoutLegend(d, i) {
+		d3.select(this).style('font-weight', 'normal');
+	}
+
+	function clickBillionaire(d, i) {
+
+		M.toast({html: 'You can remove the focus from ' + d.name + ' by clicking on the background', displayLength: 3000})
+		
+		d3.select(this).attr('stroke','black').attr('stroke-width', 5);
+
+		d3.select("#name").text(d.rank + ". " + d.name + ((d.age === -1)? "" : (" (" + d.age + ")")));
+		d3.select("#company").text(d.company + " (founded " + d.foundingdate + ")");
+		d3.select("#wealth").text("Net worth: $" + d.networthusbillion + "B");
+		d3.select("#country").text("Citizenship: " + d.citizenship);
+		d3.select("#industry").text("Industry: " + d.industry);
+		d3.select("#type").text("Type: " + d.typeofwealth);
+		d3.select("#notes").text((d.notes)? ("Notes: " + d.notes) : "");
+		d3.select("#link").attr("href", d.source.includes("http")? d.source : "").attr("target", "_blank").text(d.source.includes("http")? "Source" : "");
+
+		d3.select("#flag").attr("src", "http://www.countryflags.io/" + getCountryCode(d) + "/flat/64.png");				
+
+		selectedBillionaire = d;
+
+		updateColors();
+
+		// stops the background parent svg click handler from being called
+		d3.event.stopPropagation();
+	}
+
+	// called when the background svg is clicked and cancels the focus on one billionaire
+	function unclickBillionaire() {
+		console.log('adsad');
+		selectedBillionaire = null;
+		updateColors();
+	}
+
+	function clickLegend(d, i) {
+		// update the filtering function
+		if(d === "All") {
+			dataFilteringFunction = (dt) => true;
+		} else {
+			dataFilteringFunction = (dt) => dt.industry === d;
+		}
+
+		// update simulation
+		split(splittingFunctions[splitAxis[0]], splittingFunctions[splitAxis[1]]);
+	}
+
+	function updateColors() {
+		d3.select("#bubbles-svg").selectAll("circle").data(data.filter((d) => dataFilteringFunction(d)), (d) => d.name.replace(/\s/g, '')).attr("fill", (d) => {
+					// apply the appropriate industry color
+					return (selectedBillionaire === null || selectedBillionaire === d)? color(industryColor(d.industry)) : "#555555";
+		});
+	}
+
+});
+
+// CONST DICTIONARY DATA
 
 // maps the dataset industry name to an index value used to assign each industry a color from the color scale
 const industries = {
@@ -318,7 +378,9 @@ const industries = {
 		'Mining and metals' : 10,
 		'Non-consumer industrial' : 11,
 		'Technology-Medical' : 12,
-		'Other': 13
+		'Private equity/leveraged buyout': 13,
+		'Other': 14,
+		'All': 15
 };
 
 // maps the switch id's to the appropriate evaluation functions
@@ -389,5 +451,7 @@ const country_codes = {
 		"POL" : "pl",
 		"NZL" : "nz",
 		"NOR" : "no",
-		"AGO" : "ao"
+		"AGO" : "ao",
+		"PRT" : "pt",
+		"DZA" : "dz"
 };
