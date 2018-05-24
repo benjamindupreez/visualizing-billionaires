@@ -240,7 +240,7 @@ $(document).ready(function(){
 		$('#gender-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#gender-check") !== -1);
 		$('#american-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#american-check") !== -1);
 		$('#founder-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#founder-check") !== -1);
-		$('#emering-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#emering-check") !== -1);
+		$('#emerging-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#emerging-check") !== -1);
 		$('#politicalconnection-check').find("input[type=checkbox]").prop('checked', splitAxis.indexOf("#politicalconnection-check") !== -1);
 	}
 
