@@ -72,7 +72,7 @@ $(document).ready(function(){
 	///////////////////////////////////////
 	var data;
 
-	$.getJSON("https://gist.githubusercontent.com/benjamindupreez/c67833382bda6aa67b510b0befe52350/raw/f6880a7cbcc4e80f50baee8dee07a28918381031/billionairesV3.json").then((result) => {
+	$.getJSON("https://gist.githubusercontent.com/benjamindupreez/e724102fc83225979b003f92d6f1486b/raw/78f8aba7bb4eec4c00c79bdf307f667675a18b82/billionairesV4.json").then((result) => {
 
 		// LOAD JSON FROM WEB
 
