@@ -65,9 +65,6 @@ $(document).ready(function(){
 				.attr("fill", "white")
 				.text((d, i) => splittingText[splitAxis[i]][1])
 				.append("text");
-
-		// stops the background parent svg click handler from being called
-		d3.event.stopPropagation();
     });
 
     ///////////////////////////////////////
@@ -75,9 +72,7 @@ $(document).ready(function(){
 	///////////////////////////////////////
 	var data;
 
-	// new https://gist.githubusercontent.com/benjamindupreez/7ff764dd20dbf295d38162eec4b567de/raw/f3f570ad83b3444dd362dfd063849727ca320847/billionairesV2.json
-	// old https://gist.githubusercontent.com/benjamindupreez/5e807a4cc3c95b2b64529ed2c2396e29/raw/df04771defc2bdba1071cf004ea2780bb1595c8e/billionaires.json
-	$.getJSON("https://gist.githubusercontent.com/benjamindupreez/7ff764dd20dbf295d38162eec4b567de/raw/c8303cc204414abb7fa0b2e5568f01c02a3a1dc5/billionairesV2.json").then((result) => {
+	$.getJSON("https://gist.githubusercontent.com/benjamindupreez/c67833382bda6aa67b510b0befe52350/raw/f6880a7cbcc4e80f50baee8dee07a28918381031/billionairesV3.json").then((result) => {
 
 		// LOAD JSON FROM WEB
 
