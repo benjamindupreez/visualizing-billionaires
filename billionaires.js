@@ -24,6 +24,7 @@ $(document).ready(function(){
 	///////////////////////////////////
 	//// SWITCH HANDLING //////////////
 	///////////////////////////////////
+	
 	// if a switch was flipped -> call the appropriate functions to manipulate the data over the axis
     $(".switch").find("input[type=checkbox]").on("click", function() {
 
