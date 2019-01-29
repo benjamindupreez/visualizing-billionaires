@@ -8,8 +8,6 @@
   <img src="billionaires_screenshot_2.PNG" width="800"/>
 </div>
 
-![Field of View](billionaires_screenshot.png)
-
 An interactive data visualization of the world's 500 richest billionaires as listed by Forbes in 2014. Demo at: http://benjamindupreez.com/billionaires.html
 
 The dataset used for this visualization comes from the following study by Caroline Freund and Sarah Oliver: https://piie.com/publications/working-papers/origins-superrich-billionaire-characteristics-database?ResearchID=2917.
